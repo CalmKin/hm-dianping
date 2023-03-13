@@ -1,7 +1,9 @@
 package com.hmdp.service.impl;
 
 import cn.hutool.core.util.RandomUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.hmdp.dto.LoginFormDTO;
 import com.hmdp.dto.Result;
 import com.hmdp.entity.User;
 import com.hmdp.mapper.UserMapper;
@@ -11,6 +13,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import javax.servlet.http.HttpSession;
+
+import static com.hmdp.utils.SystemConstants.USER_NICK_NAME_PREFIX;
 
 /**
  * <p>
@@ -45,5 +49,51 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         log.debug("验证码是=====>>>>{}",code);
 
         return Result.ok();
+    }
+
+    /**
+     * 验证码登录模块
+     * 注意，因为发送验证码和登录是两个独立的请求，所以这里还需要再次校验手机号
+     * @param loginForm
+     * @param session
+     * @return
+     */
+    @Override
+    public Result login(LoginFormDTO loginForm, HttpSession session) {
+
+        String user_code = loginForm.getCode();
+        String phone = loginForm.getPhone();
+
+        if(RegexUtils.isPhoneInvalid(phone))
+        {
+            return Result.fail("手机号有误");
+        }
+
+        //校验验证码    细节：有可能session里面根本不存在code，所以还需要判空
+        Object cache_code = session.getAttribute("code");
+        if( cache_code==null || !user_code.equals( cache_code.toString() ) )
+        {
+            return Result.fail("验证码错误!");
+        }
+
+        LambdaQueryWrapper<User> lqw = new LambdaQueryWrapper<>();
+        lqw.eq(User::getPhone,phone);
+        User user = this.getOne(lqw);
+
+        if(user == null)
+        {
+            user = createUser(phone);
+        }
+
+        session.setAttribute("user",user);
+        return Result.ok("登录成功");
+    }
+
+    private User createUser(String phone) {
+        User user = new User();
+        user.setPhone(phone);
+        user.setNickName(USER_NICK_NAME_PREFIX+RandomUtil.randomString(10));
+        this.save(user);
+        return user;
     }
 }
