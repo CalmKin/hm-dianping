@@ -5,11 +5,13 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.dto.LoginFormDTO;
 import com.hmdp.dto.Result;
+import com.hmdp.dto.UserDTO;
 import com.hmdp.entity.User;
 import com.hmdp.mapper.UserMapper;
 import com.hmdp.service.IUserService;
 import com.hmdp.utils.RegexUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 import javax.servlet.http.HttpSession;
@@ -85,8 +87,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
             user = createUser(phone);
         }
 
-        session.setAttribute("user",user);
-        return Result.ok("登录成功");
+        UserDTO dto = new UserDTO();
+        BeanUtils.copyProperties(user,dto);
+
+        session.setAttribute("user",dto);
+
+        return Result.ok(dto);
     }
 
     private User createUser(String phone) {
