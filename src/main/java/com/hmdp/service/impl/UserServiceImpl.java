@@ -1,6 +1,7 @@
 package com.hmdp.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.lang.UUID;
 import cn.hutool.core.util.RandomUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Service;
 
 import javax.servlet.http.HttpSession;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -105,10 +107,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         //随机生成token作为用户的登录凭证
         String token = UUID.randomUUID().toString();
 
-        // todo: 可能存在类型转换的问题
 
+        // todo: 存在类型转换的问题,long类型不能隐式转化为string类型
         //将用户信息转化成map变量，方便值以hash的形式存进redis中
-        Map<String, Object> usrMap = BeanUtil.beanToMap(dto);
+        //这里为了方便，就通过工具类将所有属性值都转化成string
+        Map<String, Object> usrMap = BeanUtil.beanToMap(dto,new HashMap<>(),
+                CopyOptions.create()
+                        .setIgnoreNullValue(true)
+                        .setFieldValueEditor((fieldName,fieldValue)->fieldValue.toString())
+                );
 
         //将用户信息存进redis，还需要设置一个有效期
         String token_key = LOGIN_USER_KEY + token;

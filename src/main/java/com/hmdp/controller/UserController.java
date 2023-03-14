@@ -68,11 +68,7 @@ public class UserController {
      */
     @GetMapping("/me")
     public Result me(){
-
-        System.out.println("me请求处理...................");
-
         UserDTO user = UserHolder.getUser();
-
         // 获取当前登录的用户并返回
         return Result.ok(user);
     }
