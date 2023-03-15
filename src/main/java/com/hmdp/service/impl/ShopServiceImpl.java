@@ -1,5 +1,6 @@
 package com.hmdp.service.impl;
 
+import cn.hutool.core.util.BooleanUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONString;
 import com.alibaba.fastjson.JSON;
@@ -32,7 +33,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
     private StringRedisTemplate redisTemplate;
 
     /**
-     * 缓存店铺数据
+     * 缓存店铺数据,解决缓存穿透问题
      * @param id
      * @return
      */
@@ -100,4 +101,26 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
 
         return Result.ok();
     }
+
+    /**
+     * 利用redis的retnx操作来实现锁机制
+     * 获取锁的函数，key是店铺的标识，也就是说给每个店铺都设置了一个锁
+     * @param key
+     * @return
+     */
+    private boolean tryLock(String key)
+    {
+        Boolean success = redisTemplate.opsForValue().setIfAbsent(key, "1", 10, TimeUnit.SECONDS);//过时时间一般设置为业务时间的两倍左右
+        return BooleanUtil.isTrue(success);
+    }
+
+    /**
+     * 释放锁的函数
+     * @param key
+     */
+    void release(String key)
+    {
+        redisTemplate.delete(key);
+    }
+
 }
