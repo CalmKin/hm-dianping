@@ -134,7 +134,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
      * @return
      */
     @Override
-    public Shop     queryWithMutex(Long id) {
+    public Shop  queryWithMutex(Long id) {
 
         //先查询redis
         String s = redisTemplate.opsForValue().get(CACHE_SHOP_KEY + id);
@@ -204,7 +204,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
         Shop shop = null;
 
         //如果redis里面存在店铺数据，将字符串转换成对象返回
-        if(!StrUtil.isBlank(s))     //也会排除""的情况
+        if(!StrUtil.isNotBlank(s))     //也会排除""的情况
         {
             shop = JSON.parseObject(s, Shop.class);
             return shop;
@@ -258,43 +258,6 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
         redisTemplate.delete(CACHE_SHOP_KEY + id);
 
         return Result.ok();
-    }
-
-    /**
-     * 利用redis的retnx操作来实现锁机制
-     * 获取锁的函数，key是店铺的标识，也就是说给每个店铺都设置了一个锁
-     * @param key
-     * @return
-     */
-    private boolean tryLock(String key)
-    {
-        Boolean success = redisTemplate.opsForValue().setIfAbsent(key, "1", 10, TimeUnit.SECONDS);//过时时间一般设置为业务时间的两倍左右
-        return BooleanUtil.isTrue(success);     //因为拆箱过程会有空值
-    }
-
-    /**
-     * 释放锁的函数
-     * @param key
-     */
-    void release(String key)
-    {
-        redisTemplate.delete(key);
-    }
-
-
-    /**
-     * 用于缓存预热，或者将商品信息存进缓存里面
-     * @param id
-     */
-    public void saveShop2Redis(Long id,Long expireTime)
-    {
-        //获取该商铺的信息
-        Shop shop = this.getById(id);
-
-        RedisData redisData = new RedisData();
-        redisData.setData(shop);
-        redisData.setExpireTime(LocalDateTime.now().plusSeconds(expireTime));
-        redisTemplate.opsForValue().set(   CACHE_SHOP_KEY + id , JSON.toJSONString(redisData));
     }
 
 
