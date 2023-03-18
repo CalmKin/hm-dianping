@@ -61,7 +61,7 @@ public class CacheClient {
         R ret = null;
 
         //如果redis里面存在店铺数据，将字符串转换成对象返回
-        if(!StrUtil.isNotBlank(s))     //也会排除""的情况
+        if(StrUtil.isNotBlank(s))     //也会排除""的情况
         {
             ret = JSON.parseObject(s, rClass );
             return ret;
@@ -71,6 +71,8 @@ public class CacheClient {
         {
             return null;
         }
+
+        System.out.println("可以查询到店铺");
 
         //否则查询mysql数据库
         ret = function.apply(id);
@@ -84,7 +86,7 @@ public class CacheClient {
         }
 
         //否则先将数据存进redis中
-        this.set(prefix+id,ret,duration,unit);
+        this.set(key,ret,duration,unit);
         //然后将数据返回用户
         return ret;
     }
@@ -161,7 +163,7 @@ public class CacheClient {
         R ret = null;
 
         //如果redis里面存在店铺数据，将字符串转换成对象返回
-        if(!StrUtil.isNotBlank(s))     //也会排除""的情况
+        if(StrUtil.isNotBlank(s))     //也会排除""的情况
         {
             ret = JSON.parseObject(s, rClass);
             return ret;

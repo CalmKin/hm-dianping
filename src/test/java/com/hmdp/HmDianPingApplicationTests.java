@@ -14,7 +14,7 @@ class HmDianPingApplicationTests {
     @Test
     public void cache_build()
     {
-        service.saveShop2Redis(1L,10L);
+
     }
 
 
