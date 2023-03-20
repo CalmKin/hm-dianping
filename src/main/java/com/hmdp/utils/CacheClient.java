@@ -60,6 +60,8 @@ public class CacheClient {
 
         R ret = null;
 
+        System.out.println("缓存中数据为:   " + s);
+
         //如果redis里面存在店铺数据，将字符串转换成对象返回
         if(StrUtil.isNotBlank(s))     //也会排除""的情况
         {
@@ -72,7 +74,6 @@ public class CacheClient {
             return null;
         }
 
-        System.out.println("可以查询到店铺");
 
         //否则查询mysql数据库
         ret = function.apply(id);
@@ -84,6 +85,7 @@ public class CacheClient {
             redisTemplate.opsForValue().set(key,"",CACHE_NULL_TTL, TimeUnit.MINUTES);
             return null;
         }
+
 
         //否则先将数据存进redis中
         this.set(key,ret,duration,unit);

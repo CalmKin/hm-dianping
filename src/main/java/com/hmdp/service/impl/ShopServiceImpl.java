@@ -51,10 +51,10 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
     @Override
     public Result queryById(Long id) {
         //缓存穿透
-        Shop shop = client.queryWithPassThrough(CACHE_SHOP_KEY, id, Shop.class, this::getById , CACHE_SHOP_TTL, TimeUnit.MINUTES);
+        //Shop shop = client.queryWithPassThrough(CACHE_SHOP_KEY, id, Shop.class, this::getById , CACHE_SHOP_TTL, TimeUnit.MINUTES);
 
         //用互斥锁解决缓存击穿问题
-        //Shop shop=client.queryWithMutex(CACHE_SHOP_KEY, LOCK_SHOP_KEY,id,Shop.class,this::getById, CACHE_SHOP_TTL, TimeUnit.MINUTES);
+        Shop shop=client.queryWithMutex(CACHE_SHOP_KEY, LOCK_SHOP_KEY,id,Shop.class,this::getById, CACHE_SHOP_TTL, TimeUnit.MINUTES);
 
         //用逻辑过期时间解决缓存击穿问题
         //Shop shop=client.queryWithLogicalExpire(CACHE_SHOP_KEY, LOCK_SHOP_KEY,id,Shop.class,this::getById, CACHE_SHOP_TTL, TimeUnit.MINUTES);
@@ -63,7 +63,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
         {
             return Result.fail("商品信息不存在");
         }
-        System.out.println("商品信息："+shop.toString());
+       // System.out.println("商品信息："+shop.toString());
         return Result.ok(shop);
     }
 
