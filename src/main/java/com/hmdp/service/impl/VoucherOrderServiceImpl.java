@@ -8,10 +8,10 @@ import com.hmdp.mapper.VoucherOrderMapper;
 import com.hmdp.service.ISeckillVoucherService;
 import com.hmdp.service.IVoucherOrderService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.hmdp.utils.RedisIDWorker;
-import com.hmdp.utils.UserHolder;
+import com.hmdp.utils.*;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,6 +35,9 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
 
     @Resource
     private ISeckillVoucherService seckillVoucherService;
+
+    @Autowired
+    private StringRedisTemplate redisTemplate;
 
     @Override
     public Result seckillVoucher(Long voucherId) {
@@ -65,16 +68,23 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
 
         Long Usrid = UserHolder.getUser().getId();
 
-        //根据用户的id进行加锁
-        synchronized (Usrid.toString().intern())     //intern方法解决tostring底层的缺陷
-        {
-            //return createOrder(voucherId);      //这种方法会导致事务失效
+        SimpleRedisLock lock = new SimpleRedisLock(redisTemplate, "order:" + Usrid);
 
-            //获取代理对象
-            IVoucherOrderService orderService =(IVoucherOrderService) AopContext.currentProxy();
-            return orderService.createOrder(voucherId);
+        boolean flag = lock.tryLock(5);
+
+        if(!flag)
+        {
+            return Result.fail("一个用户只允许下一单!");
         }
 
+        try {
+            //获取代理对象，否则会导致事务失效
+            IVoucherOrderService orderService =(IVoucherOrderService) AopContext.currentProxy();
+            return orderService.createOrder(voucherId);
+        }finally {
+            //释放锁
+            lock.unlock();
+        }
     }
 
     /**
@@ -119,7 +129,6 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         long orderId = redisIDWorker.nextId("shop");
         order.setId(orderId);
 
-        System.out.println("新的订单id为  "+orderId);
 
         //新增订单
         this.save(order);
