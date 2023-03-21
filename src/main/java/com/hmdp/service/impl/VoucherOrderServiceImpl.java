@@ -9,6 +9,8 @@ import com.hmdp.service.ISeckillVoucherService;
 import com.hmdp.service.IVoucherOrderService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.utils.*;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -39,6 +41,10 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     @Autowired
     private StringRedisTemplate redisTemplate;
 
+
+    @Resource
+    private RedissonClient redissonClient;
+
     @Override
     public Result seckillVoucher(Long voucherId) {
 
@@ -68,10 +74,9 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
 
         Long Usrid = UserHolder.getUser().getId();
 
-        SimpleRedisLock lock = new SimpleRedisLock(redisTemplate, "order:" + Usrid);
 
-        boolean flag = lock.tryLock(5);
-
+        RLock lock = redissonClient.getLock("lock:shop" + Usrid);
+        boolean flag = lock.tryLock();
         if(!flag)
         {
             return Result.fail("一个用户只允许下一单!");

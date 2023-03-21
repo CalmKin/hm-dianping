@@ -69,7 +69,11 @@
             <artifactId>aspectjweaver</artifactId>
         </dependency>
 
-
+        <dependency>
+            <groupId>org.redisson</groupId>
+            <artifactId>redisson</artifactId>
+            <version>3.20.0</version>
+        </dependency>
     </dependencies>
 
     <build>
