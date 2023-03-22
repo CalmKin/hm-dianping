@@ -114,7 +114,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         Map<String, Object> usrMap = BeanUtil.beanToMap(dto,new HashMap<>(),
                 CopyOptions.create()
                         .setIgnoreNullValue(true)
-                        .setFieldValueEditor((fieldName,fieldValue)->fieldValue.toString())
+                        .setFieldValueEditor((fieldName,fieldValue)->fieldValue.toString())//这里解决long类型不能自动转化成string类型的问题
                 );
 
         //将用户信息存进redis，还需要设置一个有效期

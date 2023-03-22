@@ -9,9 +9,11 @@ import com.hmdp.mapper.VoucherMapper;
 import com.hmdp.entity.SeckillVoucher;
 import com.hmdp.service.ISeckillVoucherService;
 import com.hmdp.service.IVoucherService;
+import com.hmdp.utils.RedisConstants;
 import com.hmdp.utils.RedisIDWorker;
 import com.hmdp.utils.UserHolder;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,7 +35,8 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, Voucher> impl
     @Resource
     private ISeckillVoucherService seckillVoucherService;
 
-
+    @Autowired
+    private StringRedisTemplate redisTemplate;
 
     @Override
     public Result queryVoucherOfShop(Long shopId) {
@@ -42,6 +45,11 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, Voucher> impl
         // 返回结果
         return Result.ok(vouchers);
     }
+
+    /**
+     * 同时将秒杀券的信息存进普通券和秒杀券两个库里面，并且将库存存进redis中
+     * @param voucher
+     */
 
     @Override
     @Transactional
@@ -55,6 +63,9 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, Voucher> impl
         seckillVoucher.setBeginTime(voucher.getBeginTime());
         seckillVoucher.setEndTime(voucher.getEndTime());
         seckillVoucherService.save(seckillVoucher);
+        //将库存存进redis里面
+        redisTemplate.opsForValue().set(RedisConstants.SECKILL_STOCK_KEY+voucher.getId(),voucher.getStock().toString());
+
     }
 
 
