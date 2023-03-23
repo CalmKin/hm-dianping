@@ -81,7 +81,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
                 {
                     try {
 
-                        log.info("开始获取消息队列。。。");
+//                        log.info("开始获取消息队列。。。");
                         Thread.sleep(2000);
                         //1.获取消息队列里面的订单消息
                         List<MapRecord<String, Object, Object>> msg = redisTemplate.opsForStream().read(
@@ -92,7 +92,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
                         //2.判断消息获取是否成功
                         if(msg == null || msg.isEmpty()) {
                             //如果获取失败，说明没有消息，继续下一次循环
-                            log.info("消息队列为空");
+//                            log.info("消息队列为空");
                             continue;
                         }
                         //3.获取消息成功，解析消息里面的订单信息
@@ -100,7 +100,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
                         Map<Object, Object> value = entries.getValue();
                         VoucherOrder voucherOrder = BeanUtil.fillBeanWithMap(value, new VoucherOrder(), true);
 
-                        log.info("读取消息队列成功");
+//                        log.info("读取消息队列成功");
 
                         //4.获取成功，进行下单
                         handleVoucherOrder(voucherOrder);
@@ -149,7 +149,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
                 Thread.sleep(2000);
             } catch (Exception e) {
                 //如果出现异常，则进入下一次循环，进行读取消息,保证异常的订单一定可以读取成功
-                log.info("pending-list读取异常");
+//                log.info("pending-list读取异常");
 
             }
 
