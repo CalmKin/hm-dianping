@@ -42,7 +42,6 @@ public class FollowServiceImpl extends ServiceImpl<FollowMapper, Follow> impleme
 
     @Override
     public Result isFollowed(long id) {
-        System.out.println("发送是否关注请求========================================");
         Long user = UserHolder.getUser().getId();
         LambdaQueryWrapper<Follow> lqw = new LambdaQueryWrapper<>();
         lqw.eq(Follow::getFollowUserId,id);

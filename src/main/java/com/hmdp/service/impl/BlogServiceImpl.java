@@ -9,10 +9,12 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hmdp.dto.Result;
 import com.hmdp.dto.UserDTO;
 import com.hmdp.entity.Blog;
+import com.hmdp.entity.Follow;
 import com.hmdp.entity.User;
 import com.hmdp.mapper.BlogMapper;
 import com.hmdp.service.IBlogService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.hmdp.service.IFollowService;
 import com.hmdp.service.IUserService;
 import com.hmdp.utils.RedisConstants;
 import com.hmdp.utils.SystemConstants;
@@ -29,6 +31,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.hmdp.utils.RedisConstants.BLOG_LIKED_KEY;
+import static com.hmdp.utils.RedisConstants.FEED_KEY;
 
 /**
  * <p>
@@ -43,6 +46,9 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
 
     @Autowired
     private StringRedisTemplate redisTemplate;
+
+    @Autowired
+    private IFollowService followService;
 
     @Resource
     private IUserService userService;
@@ -154,6 +160,37 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
                 .collect(Collectors.toList());
 
         return Result.ok(userDtos);
+    }
+
+    /***
+     * 保存博客功能，同时将该博客发送给所有粉丝
+     * @param blog
+     * @return
+     */
+    @Override
+    public Result saveBlog(Blog blog) {
+        // 获取登录用户
+        UserDTO user = UserHolder.getUser();
+        blog.setUserId(user.getId());
+        // 保存探店博文
+        boolean save = save(blog);
+        if(save==false)
+        {
+            return Result.fail("笔记保存失败");
+        }
+        //获取当前发布笔记用户的所有粉丝
+        LambdaQueryWrapper<Follow> lqw = new LambdaQueryWrapper<>();
+        lqw.eq(Follow::getFollowUserId,user.getId());
+        List<Follow> list = followService.list(lqw);
+        //遍历所有粉丝，将博客推送给每一个粉丝,同时以时间戳为权重
+        list.forEach(
+                item->{
+                    String key = FEED_KEY + item.getUserId();
+                    redisTemplate.opsForZSet().add(key,blog.getId().toString(),System.currentTimeMillis());
+                }
+        );
+        // 返回id
+        return Result.ok(blog.getId());
     }
 
     private void setUserInfo(Blog blog) {
