@@ -41,5 +41,16 @@ public class FollowController {
         return service.isFollowed(id);
     }
 
+    /**
+     * 查询当前用户和正在浏览用户的共同关注
+     * 因为涉及求交集，所以改造之前的关注业务
+     * http://127.0.0.1/api/follow/common/
+     */
+    @GetMapping("/common/{id}")
+    public  Result getCommons(@PathVariable("id") long id)
+    {
+        return service.getCommons(id);
+    }
+
 
 }
