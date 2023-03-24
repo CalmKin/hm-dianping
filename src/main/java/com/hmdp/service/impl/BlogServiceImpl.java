@@ -7,6 +7,7 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hmdp.dto.Result;
+import com.hmdp.dto.ScrollResult;
 import com.hmdp.dto.UserDTO;
 import com.hmdp.entity.Blog;
 import com.hmdp.entity.Follow;
@@ -22,9 +23,11 @@ import com.hmdp.utils.UserHolder;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -191,6 +194,63 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
         );
         // 返回id
         return Result.ok(blog.getId());
+    }
+
+    @Override
+    public Result queryFollowBlog(long lastId,int offset ) {
+
+        //1.获取当前用户
+        Long userID = UserHolder.getUser().getId();
+        //2.查询收件箱
+        String key = FEED_KEY + userID;
+            //对所有的博客按照时间戳降序排列
+        Set<ZSetOperations.TypedTuple<String>> typedTuples = redisTemplate.opsForZSet().reverseRangeByScoreWithScores(key, 0, lastId, offset, 2);
+            //每个元组包括对应的值和权重
+            //判空
+            if(typedTuples ==null || typedTuples.isEmpty())
+            {
+                return Result.ok(Collections.EMPTY_LIST);
+            }
+        //3.解析数据：博客id，时间戳==>offset
+            long maxi_time = 0;
+            int ofs = 1;
+
+            //保存这个用户当前获取的博客id
+            List<Long> ids = new ArrayList<>(typedTuples.size());   //将数组的大小预先设置成和redis里面存的一样大，尽量避免扩容
+
+        for (ZSetOperations.TypedTuple<String> typedTuple : typedTuples) {
+            ids.add(Long.valueOf(typedTuple.getValue()));
+            long v = typedTuple.getScore().longValue();
+            if(v==maxi_time)
+            {
+                ofs++;
+            }
+            else
+            {
+                maxi_time=v;
+                ofs=1;
+            }
+        }
+        //4.根据id查询博客,为了防止失序，还得用之前手动拼接的方法来查询
+        String strs = StrUtil.join(",");
+        List<Blog> blogs = this.query().in("id", ids).last("ORDER BY FIELD(id," + strs + ")").list();
+
+        blogs.forEach(
+                item ->
+                {
+                    //还需要给每个博客设置点赞信息和用户信息
+                    this.setUserInfo(item);
+                    this.isLiked(item);
+                }
+        );
+
+        //5.将用户信息和点赞信息封装进博客里面
+        ScrollResult result = new ScrollResult();
+        result.setList(blogs);
+        result.setOffset(ofs);
+        result.setMinTime(maxi_time);
+        //6.将博客列表返回
+        return Result.ok(result);
     }
 
     private void setUserInfo(Blog blog) {

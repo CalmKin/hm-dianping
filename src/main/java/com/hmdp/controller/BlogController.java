@@ -90,5 +90,17 @@ public class BlogController {
         return Result.ok(records);
     }
 
+    /**
+     * 接收已关注用户的笔记推送
+     * 第一次查的时候，offset默认值应该是0
+     * @param lastId
+     * @param offset
+     * @return
+     */
+    @GetMapping("/of/follow")
+    public Result queryFollowBlog(@RequestParam("lastId") long lastId,@RequestParam(value = "offset",defaultValue = "0") int offset)
+    {
+        return blogService.queryFollowBlog(lastId,offset);
+    }
 
 }
