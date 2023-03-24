@@ -1,9 +1,14 @@
 package com.hmdp.controller;
 
 
-import org.springframework.web.bind.annotation.RequestMapping;
-
-import org.springframework.web.bind.annotation.RestController;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.hmdp.dto.Result;
+import com.hmdp.entity.Follow;
+import com.hmdp.mapper.FollowMapper;
+import com.hmdp.service.IFollowService;
+import com.hmdp.utils.UserHolder;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * <p>
@@ -16,5 +21,25 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/follow")
 public class FollowController {
+
+    @Autowired
+    private IFollowService service;
+
+    /**请求地址：http://127.0.0.1/api/follow/2/true
+     *
+     */
+     @PutMapping("/{followId}/{isFollow}")
+    public Result follow(@PathVariable("followId") long id,@PathVariable("isFollow") boolean isFollow)
+     {
+        return service.follow(id,isFollow);
+     }
+
+
+    @GetMapping("/or/not/{id}")
+    public Result isFollowed(@PathVariable("id") long id)
+    {
+        return service.isFollowed(id);
+    }
+
 
 }
