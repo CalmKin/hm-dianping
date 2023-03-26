@@ -12,7 +12,9 @@ import com.hmdp.dto.UserDTO;
 import com.hmdp.entity.User;
 import com.hmdp.mapper.UserMapper;
 import com.hmdp.service.IUserService;
+import com.hmdp.utils.RedisConstants;
 import com.hmdp.utils.RegexUtils;
+import com.hmdp.utils.UserHolder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +23,8 @@ import org.springframework.stereotype.Service;
 
 import javax.servlet.http.HttpSession;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -125,6 +129,26 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 
         //将token返回给前端，方便下次发送请求的时候携带token
         return Result.ok(token);
+    }
+
+    /**
+     * 用户签到功能
+     * @return
+     */
+    @Override
+    public Result sign() {
+
+        Long usrId = UserHolder.getUser().getId();
+
+        String keySuffix = LocalDateTime.now().format( DateTimeFormatter.ofPattern(":yyyy:MM"));
+
+        String key = USER_SIGN_KEY + usrId +keySuffix;
+
+        int dayOfMonth = LocalDateTime.now().getDayOfMonth();
+
+        redisTemplate.opsForValue().setBit(key,dayOfMonth-1,true);
+
+        return Result.ok();
     }
 
     private User createUser(String phone) {
