@@ -16,8 +16,10 @@ import com.hmdp.utils.RedisConstants;
 import com.hmdp.utils.RegexUtils;
 import com.hmdp.utils.UserHolder;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.connection.BitFieldSubCommands;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -26,6 +28,7 @@ import javax.servlet.http.HttpSession;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -149,6 +152,47 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         redisTemplate.opsForValue().setBit(key,dayOfMonth-1,true);
 
         return Result.ok();
+    }
+
+    /**
+     * 求从当天开始,往前的最大连续签到次数
+     * @return
+     */
+    @Override
+    public Result signCount() {
+
+        Long usrId = UserHolder.getUser().getId();
+
+        String keySuffix = LocalDateTime.now().format( DateTimeFormatter.ofPattern(":yyyy:MM"));
+
+        String key = USER_SIGN_KEY + usrId +keySuffix;
+
+        int dayOfMonth = LocalDateTime.now().getDayOfMonth();
+
+        List<Long> longs = redisTemplate.opsForValue().bitField(key,
+                BitFieldSubCommands.create().get(BitFieldSubCommands.BitFieldType.unsigned(dayOfMonth))         //从第0个位置开始，往后获取14个位置，取出来的数是无符号的十进制
+                        .valueAt(0)
+        );
+        //判空
+        if(longs == null || longs.isEmpty())
+        {
+            return Result.fail("获取签到天数失败");
+        }
+
+        Long val = longs.get(0);
+        int count = 0;
+        while(true)
+        {
+            if((val & 1)==1)
+            {
+                count++;
+            }
+            else break;
+            val >>>=1;
+        }
+
+        return Result.ok(count);
+
     }
 
     private User createUser(String phone) {
